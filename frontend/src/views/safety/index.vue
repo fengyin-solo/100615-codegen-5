@@ -63,6 +63,57 @@
       </tbody>
     </table>
 
+    <h3 class="section-title">临时用电隐患项清单</h3>
+    <p class="section-desc">
+      与洞内临时用电台账同源，只留一份；未整改配电箱数 <strong>{{ powerUnrectified.length }}</strong>。
+    </p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>配电箱编号</th>
+          <th>安装位置</th>
+          <th>所属班组</th>
+          <th>未通过项</th>
+          <th>当前状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in powerUnrectified" :key="String(row.id)">
+          <td>{{ row['配电箱编号'] }}</td>
+          <td>{{ row['安装位置'] }}</td>
+          <td>{{ row['所属班组'] }}</td>
+          <td>{{ row['未通过项'] || '—' }}</td>
+          <td>{{ row.status }}</td>
+        </tr>
+        <tr v-if="!powerUnrectified.length">
+          <td colspan="5" class="empty-state">当前没有未整改的配电箱</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="section-title">送电前确认记录</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>巡检编号</th>
+          <th>巡检区域</th>
+          <th>确认内容</th>
+          <th>确认人</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in powerConfirms" :key="String(row.id)">
+          <td>{{ row['巡检编号'] }}</td>
+          <td>{{ row['巡检区域'] }}</td>
+          <td>{{ row['发现问题'] }}</td>
+          <td>{{ row['巡检人员'] }}</td>
+        </tr>
+        <tr v-if="!powerConfirms.length">
+          <td colspan="4" class="empty-state">暂无送电前确认记录</td>
+        </tr>
+      </tbody>
+    </table>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条安全巡检记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -79,6 +130,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { powerConfirmations, unrectifiedBoxes } from '@/api/power-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('safety')
@@ -91,6 +143,8 @@ const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
+const powerUnrectified = ref<EntryRow[]>([])
+const powerConfirms = ref<EntryRow[]>([])
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
@@ -128,6 +182,8 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    powerUnrectified.value = unrectifiedBoxes()
+    powerConfirms.value = powerConfirmations()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '安全巡检列表读取失败'
   }
@@ -135,3 +191,15 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.section-title {
+  font-size: 14px;
+  margin: 16px 0 8px;
+}
+.section-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+</style>

@@ -41,11 +41,17 @@ export function listRows(key: string): EntryRow[] {
 }
 
 export function saveRows(key: string, rows: EntryRow[]): void {
-  const next = { ...allRows(), [key]: rows }
-  cache = next
+  saveMany({ [key]: rows })
+}
+
+// 一次落库多个集合：先写 localStorage，写成功才换缓存；写不进去（如超限）抛错，
+// 缓存保持原样，调用方拿到异常就知道本次改动已整体回滚，不会留半截数据。
+export function saveMany(updates: Record<string, EntryRow[]>): void {
+  const next = { ...allRows(), ...updates }
   if (typeof window !== 'undefined' && window.localStorage) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
+  cache = next
 }
 
 export function resetRows(key: string): EntryRow[] {

@@ -1,4 +1,4 @@
-import { MODULE_BY_KEY } from '@/data/modules'
+import { MODULE_BY_KEY, POWER_MODULE_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
@@ -29,6 +29,9 @@ export function listEntries(key: string, filters: Record<string, string> = {}): 
 }
 
 export function runAction(key: string, id: number, action: string): ActionResult {
+  if (key === POWER_MODULE_KEY) {
+    return { ok: false, message: '洞内临时用电的状态只能随点检、停送电登记流转，不能直接从台账改' }
+  }
   const meta = moduleMeta(key)
   const target = meta.actionTargets[action]
   if (!target) {

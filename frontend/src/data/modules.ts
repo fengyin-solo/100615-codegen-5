@@ -1,5 +1,9 @@
 import type { ModuleMeta } from './types'
 
+// 洞内临时用电的模块 key：点检、停送电的专用流转在 api/power-service.ts，
+// 通用 runAction 对这个 key 一律挡回。
+export const POWER_MODULE_KEY = 'power'
+
 // 模块元数据由仓库生成时写入：字段、状态、动作、流转目标都在这里，页面不再各自写一遍。
 export const MODULES: ModuleMeta[] = [
   {
@@ -199,6 +203,17 @@ export const MODULES: ModuleMeta[] = [
     actions: ["提交巡检", "派发整改", "确认闭环"],
     actionTargets: {"提交巡检": "已巡检", "派发整改": "待整改", "确认闭环": "已闭环"},
     metrics: ["待巡检区域", "待整改隐患", "已闭环隐患"],
+  },
+  {
+    key: POWER_MODULE_KEY,
+    name: "洞内临时用电",
+    entity: "配电箱",
+    desc: "维护洞内配电箱台账，按配电箱登记点检与停送电，漏电保护试验不通过直接转待整改。",
+    fields: ["配电箱编号", "安装位置", "所属班组", "责任单位", "点检周期", "最近点检日期", "下次点检日期", "漏电保护试验", "未通过项"],
+    statuses: ["正常", "到期待点检", "待整改", "已停用"],
+    actions: ["登记点检", "登记停送电", "停用配电箱"],
+    actionTargets: {"登记点检": "正常", "登记停送电": "正常", "停用配电箱": "已停用"},
+    metrics: ["在册配电箱", "到期待点检", "待整改配电箱"],
   },
 ]
 
