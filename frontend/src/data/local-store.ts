@@ -54,6 +54,26 @@ export function resetRows(key: string): EntryRow[] {
   return rows
 }
 
+/**
+ * 多表事务：先给涉及的 key 拍快照，fn 里任意一步落库失败就把快照写回去，
+ * 保证一次业务操作要么全成、要么全不成，不留半截记录。
+ */
+export function transact<T>(keys: string[], fn: () => T): T {
+  const snapshot = new Map(keys.map((key) => [key, clone(listRows(key))]))
+  try {
+    return fn()
+  } catch (error) {
+    for (const key of keys) {
+      try {
+        saveRows(key, snapshot.get(key) ?? [])
+      } catch {
+        // 回滚本身也失败时只能尽力而为，原始错误照样往上抛
+      }
+    }
+    throw error
+  }
+}
+
 export function storageKey(): string {
   return STORAGE_KEY
 }

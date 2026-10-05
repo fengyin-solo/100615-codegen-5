@@ -67,6 +67,26 @@
       <span>共 {{ total }} 条安全巡检记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <h3 class="section-title">临时用电隐患项（与临时用电台账同源 · 只读）</h3>
+    <p class="section-note">
+      未整改配电箱：{{ powerUnrectified }} 台 · 与临时用电台账读的是同一份隐患项清单，两处不会是两个数。
+    </p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th v-for="column in hazardColumns" :key="column">{{ column }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in powerHazards" :key="String(row.id)">
+          <td v-for="column in hazardColumns" :key="column">{{ row[column] ?? '—' }}</td>
+        </tr>
+        <tr v-if="!powerHazards.length">
+          <td :colspan="hazardColumns.length" class="empty-state">暂无临时用电隐患项</td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 </template>
 
@@ -79,6 +99,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { sharedHazardView, unrectifiedBoxCount } from '@/api/power-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('safety')
@@ -86,11 +107,15 @@ const columns = ["巡检编号", "巡检区域", "巡检项目", "发现问题",
 const actions = ["提交巡检", "派发整改", "确认闭环"]
 const statuses = ["待巡检", "已巡检", "待整改", "已闭环"]
 const stats = [{"label": "待巡检区域", "value": 0}, {"label": "待整改隐患", "value": 0}, {"label": "已闭环隐患", "value": 0}]
+const hazardColumns = ["隐患编号", "配电箱编号", "隐患类型", "隐患描述", "提出人", "提出时间", "整改期限", "隐患状态", "闭环人", "闭环时间"]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
+// 临时用电隐患项：与电工台账同源，只读展示，本页不另存副本。
+const powerHazards = ref<ReadonlyArray<Readonly<EntryRow>>>([])
+const powerUnrectified = ref(0)
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
@@ -128,6 +153,8 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    powerHazards.value = sharedHazardView()
+    powerUnrectified.value = unrectifiedBoxCount()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '安全巡检列表读取失败'
   }
